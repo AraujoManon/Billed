@@ -226,4 +226,21 @@ describe("When I do fill fields in correct format and I click on admin button Lo
   test("It should renders HR dashboard page", () => {
     expect(screen.queryByText("Validations")).toBeTruthy();
   });
+  describe("When I do click on eye icon", () => {
+    test("Then, it should show the password in plain text", () => {
+      document.body.innerHTML = LoginUI();
+
+      const inputPassword = screen.getByTestId("employee-password-input");
+      const eyeIcon = screen.getByTestId("icon-eye");
+
+      // Initial type should be password
+      expect(inputPassword.type).toBe("password");
+
+      // Simulate click on eye icon
+      fireEvent.click(eyeIcon);
+
+      // Expect the input type to change to text
+      expect(inputPassword.type).toBe("text");
+    });
+  });
 });
