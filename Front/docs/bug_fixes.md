@@ -107,6 +107,66 @@ Les champs du formulaire n'étaient pas correctement remplis avant d'être envoy
    });
    ```
 
+## 5. Problème de Validation des Fichiers dans NewBill
+
+### Erreur initiale
+Lors de la sélection d'un fichier non valide (extension autre que .jpg, .jpeg ou .png), le message d'erreur s'affichait mais le bouton de validation restait actif.
+
+### Correction
+1. Dans `NewBill.js` :
+   - Ajout d'un compteur pour le bouton de validation
+   - Désactivation du bouton lors de la sélection d'un fichier invalide
+   - Réactivation du bouton uniquement quand un fichier valide est sélectionné
+   - Effacement automatique du fichier invalide
+
+```javascript
+handleChangeFile = e => {
+  const submitButton = this.document.querySelector(`button[type="submit"]`)
+  
+  // Vérifier l'extension du fichier
+  const allowedExtensions = ['jpg', 'jpeg', 'png'];
+  const fileExtension = file.name.split('.').pop().toLowerCase();
+  
+  if (!allowedExtensions.includes(fileExtension)) {
+    alert('Seuls les fichiers avec les extensions .jpg, .jpeg ou .png sont autorisés');
+    submitButton.disabled = true;
+    e.target.value = '';
+    return;
+  }
+
+  submitButton.disabled = false;
+  // ... reste du code
+}
+```
+
+## 6. Problème de Blocage des Listes dans Dashboard
+
+### Erreur initiale
+Les listes de tickets dans le Dashboard se bloquaient mutuellement : après avoir déplié une liste et sélectionné un ticket, on ne pouvait plus sélectionner de tickets dans les autres listes.
+
+### Cause
+1. Les événements de clic s'accumulaient sur les tickets
+2. Les compteurs d'état des listes étaient mal gérés
+3. Les événements n'étaient pas correctement nettoyés
+
+### Correction
+1. Dans `Dashboard.js` :
+   - Ajout d'un système de compteurs séparés pour chaque liste
+   ```javascript
+   this.counters = {
+     1: 0, // Liste pending
+     2: 0, // Liste accepted
+     3: 0   // Liste refused
+   }
+   ```
+   - Nettoyage des événements existants avant d'en ajouter de nouveaux
+   ```javascript
+   bills.forEach(bill => {
+     $(`#open-bill${bill.id}`).off('click').on('click', (e) => this.handleEditTicket(e, bill, bills))
+   })
+   ```
+   - Utilisation de `.on('click')` au lieu de `.click()` pour une meilleure gestion des événements
+
 ## Conclusion
 
 Ces corrections ont permis de :
@@ -114,5 +174,7 @@ Ces corrections ont permis de :
 2. Implémenter un tri correct des dates dans Bills
 3. Améliorer la robustesse des tests avec des vérifications d'existence
 4. Configurer correctement le localStorage pour les tests
+5. Ajouter une validation des fichiers dans NewBill avec désactivation du bouton de validation
+6. Résoudre le blocage des listes dans Dashboard avec une meilleure gestion des événements et des compteurs
 
-Tous les tests passent maintenant avec succès, indiquant que les problèmes ont été résolus de manière complète.
+Tous les tests passent maintenant avec succès et l'interface utilisateur fonctionne correctement, indiquant que les problèmes ont été résolus de manière complète.

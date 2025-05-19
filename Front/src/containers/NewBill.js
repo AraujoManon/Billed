@@ -18,6 +18,24 @@ export default class NewBill {
   handleChangeFile = e => {
     e.preventDefault()
     const file = this.document.querySelector(`input[data-testid="file"]`).files[0]
+    const submitButton = this.document.querySelector(`button[type="submit"]`)
+    
+    // Vérifier l'extension du fichier
+    const allowedExtensions = ['jpg', 'jpeg', 'png'];
+    const fileExtension = file.name.split('.').pop().toLowerCase();
+    
+    if (!allowedExtensions.includes(fileExtension)) {
+      alert('Seuls les fichiers avec les extensions .jpg, .jpeg ou .png sont autorisés');
+      // Désactiver le bouton de validation
+      submitButton.disabled = true;
+      // Effacer le fichier invalide
+      e.target.value = '';
+      return;
+    }
+
+    // Réactiver le bouton de validation
+    submitButton.disabled = false;
+
     const filePath = e.target.value.split(/\\/g)
     const fileName = filePath[filePath.length-1]
     const formData = new FormData()

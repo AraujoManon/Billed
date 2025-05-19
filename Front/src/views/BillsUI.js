@@ -13,7 +13,7 @@ const row = (bill) => {
       <td>${bill.amount} €</td>
       <td>${bill.status}</td>
       <td>
-        ${Actions(bill.fileUrl)}
+        ${Actions(bill.fileUrl, bill.fileName)}
       </td>
     </tr>
     `)
@@ -36,6 +36,7 @@ export default ({ data: bills, loading, error }) => {
             </button>
           </div>
           <div class="modal-body">
+            <img src="" alt="justificatif" class="bill-img">
           </div>
         </div>
       </div>
