@@ -168,17 +168,22 @@ describe("Given that I am a user on login page", () => {
         status: "connected",
       };
 
-      const inputEmailUser = screen.getByTestId("admin-email-input");
+      // Vérifier que le formulaire admin existe
+      const form = screen.getByTestId("form-admin");
+      expect(form).toBeTruthy();
+
+      // Attendre que les éléments soient présents dans le DOM
+      const inputEmailUser = form.querySelector(`input[data-testid="admin-email-input"]`);
+      expect(inputEmailUser).toBeTruthy();
       fireEvent.change(inputEmailUser, { target: { value: inputData.email } });
       expect(inputEmailUser.value).toBe(inputData.email);
 
-      const inputPasswordUser = screen.getByTestId("admin-password-input");
+      const inputPasswordUser = form.querySelector(`input[data-testid="admin-password-input"]`);
+      expect(inputPasswordUser).toBeTruthy();
       fireEvent.change(inputPasswordUser, {
         target: { value: inputData.password },
       });
       expect(inputPasswordUser.value).toBe(inputData.password);
-
-      const form = screen.getByTestId("form-admin");
 
       // localStorage should be populated with form data
       Object.defineProperty(window, "localStorage", {
