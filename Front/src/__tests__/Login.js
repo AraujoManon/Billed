@@ -5,6 +5,7 @@
 import LoginUI from "../views/LoginUI";
 import Login from "../containers/Login.js";
 import { ROUTES } from "../constants/routes";
+import { ROUTES_PATH } from "../constants/routes.js";
 import { fireEvent, screen } from "@testing-library/dom";
 
 describe("Given that I am a user on login page", () => {
@@ -230,6 +231,343 @@ describe("Given that I am a user on login page", () => {
 
     test("It should renders HR dashboard page", () => {
       expect(screen.queryByText("Validations")).toBeTruthy();
+    });
+  });
+
+  // TESTS SUPPLÉMENTAIRES POUR 100% DE COUVERTURE
+  describe("Given that I am a user on login page - Additional coverage tests", () => {
+    
+    describe("When login method is called with store", () => {
+      test("Then it should call store.login and set jwt in localStorage", async () => {
+        document.body.innerHTML = LoginUI();
+        
+        const mockStore = {
+          login: jest.fn().mockResolvedValue({ jwt: "fake-jwt-token" })
+        };
+        
+        // Mock localStorage
+        const mockLocalStorage = {
+          setItem: jest.fn(),
+          getItem: jest.fn()
+        };
+        
+        Object.defineProperty(window, 'localStorage', {
+          value: mockLocalStorage,
+          writable: true,
+        });
+        
+        const login = new Login({
+          document,
+          localStorage: window.localStorage,
+          onNavigate: jest.fn(),
+          PREVIOUS_LOCATION: "",
+          store: mockStore,
+        });
+        
+        const user = {
+          email: "test@test.com",
+          password: "password123"
+        };
+        
+        await login.login(user);
+        
+        expect(mockStore.login).toHaveBeenCalledWith(JSON.stringify({
+          email: user.email,
+          password: user.password,
+        }));
+        expect(mockLocalStorage.setItem).toHaveBeenCalledWith('jwt', 'fake-jwt-token');
+      });
+      
+      test("Then it should return null when no store", () => {
+        document.body.innerHTML = LoginUI();
+        
+        const login = new Login({
+          document,
+          localStorage: window.localStorage,
+          onNavigate: jest.fn(),
+          PREVIOUS_LOCATION: "",
+          store: null,
+        });
+        
+        const user = {
+          email: "test@test.com",
+          password: "password123"
+        };
+        
+        const result = login.login(user);
+        
+        expect(result).toBeNull();
+      });
+    });
+
+    describe("When createUser method is called with store", () => {
+      test("Then it should call store.users.create and then login", async () => {
+        document.body.innerHTML = LoginUI();
+        
+        const consoleSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
+        
+        const mockStore = {
+          users: jest.fn().mockReturnValue({
+            create: jest.fn().mockResolvedValue({})
+          }),
+          login: jest.fn().mockResolvedValue({ jwt: "fake-jwt-token" })
+        };
+        
+        // Mock localStorage
+        const mockLocalStorage = {
+          setItem: jest.fn(),
+          getItem: jest.fn()
+        };
+        
+        Object.defineProperty(window, 'localStorage', {
+          value: mockLocalStorage,
+          writable: true,
+        });
+        
+        const login = new Login({
+          document,
+          localStorage: window.localStorage,
+          onNavigate: jest.fn(),
+          PREVIOUS_LOCATION: "",
+          store: mockStore,
+        });
+        
+        const user = {
+          type: "Employee",
+          email: "newuser@test.com",
+          password: "password123"
+        };
+        
+        await login.createUser(user);
+        
+        expect(mockStore.users).toHaveBeenCalled();
+        expect(mockStore.users().create).toHaveBeenCalledWith({
+          data: JSON.stringify({
+            type: user.type,
+            name: user.email.split('@')[0],
+            email: user.email,
+            password: user.password,
+          })
+        });
+        expect(consoleSpy).toHaveBeenCalledWith(`User with ${user.email} is created`);
+        
+        consoleSpy.mockRestore();
+      });
+      
+      test("Then it should return null when no store", () => {
+        document.body.innerHTML = LoginUI();
+        
+        const login = new Login({
+          document,
+          localStorage: window.localStorage,
+          onNavigate: jest.fn(),
+          PREVIOUS_LOCATION: "",
+          store: null,
+        });
+        
+        const user = {
+          type: "Employee",
+          email: "test@test.com",
+          password: "password123"
+        };
+        
+        const result = login.createUser(user);
+        
+        expect(result).toBeNull();
+      });
+    });
+
+    describe("When handleSubmitEmployee fails login and calls createUser", () => {
+      test("Then it should catch error and call createUser", async () => {
+        document.body.innerHTML = LoginUI();
+        
+        const mockStore = {
+          login: jest.fn().mockRejectedValue(new Error("Login failed")),
+          users: jest.fn().mockReturnValue({
+            create: jest.fn().mockResolvedValue({})
+          })
+        };
+        
+        const mockLocalStorage = {
+          setItem: jest.fn(),
+          getItem: jest.fn()
+        };
+        
+        Object.defineProperty(window, 'localStorage', {
+          value: mockLocalStorage,
+          writable: true,
+        });
+        
+        const onNavigate = jest.fn();
+        
+        const login = new Login({
+          document,
+          localStorage: window.localStorage,
+          onNavigate,
+          PREVIOUS_LOCATION: "",
+          store: mockStore,
+        });
+        
+        // Spy sur createUser pour vérifier qu'elle est appelée
+        const createUserSpy = jest.spyOn(login, 'createUser').mockResolvedValue({});
+        
+        const form = screen.getByTestId("form-employee");
+        const emailInput = screen.getByTestId("employee-email-input");
+        const passwordInput = screen.getByTestId("employee-password-input");
+        
+        fireEvent.change(emailInput, { target: { value: "test@test.com" } });
+        fireEvent.change(passwordInput, { target: { value: "password123" } });
+        
+        await fireEvent.submit(form);
+        
+        // Attendre que les promesses se résolvent
+        await new Promise(resolve => setTimeout(resolve, 0));
+        
+        expect(createUserSpy).toHaveBeenCalled();
+        expect(onNavigate).toHaveBeenCalledWith(ROUTES_PATH['Bills']);
+        
+        createUserSpy.mockRestore();
+      });
+    });
+
+    describe("When handleSubmitAdmin fails login and calls createUser", () => {
+      test("Then it should catch error and call createUser", async () => {
+        document.body.innerHTML = LoginUI();
+        
+        const mockStore = {
+          login: jest.fn().mockRejectedValue(new Error("Login failed")),
+          users: jest.fn().mockReturnValue({
+            create: jest.fn().mockResolvedValue({})
+          })
+        };
+        
+        const mockLocalStorage = {
+          setItem: jest.fn(),
+          getItem: jest.fn()
+        };
+        
+        Object.defineProperty(window, 'localStorage', {
+          value: mockLocalStorage,
+        });
+        
+        const onNavigate = jest.fn();
+        
+        const login = new Login({
+          document,
+          localStorage: window.localStorage,
+          onNavigate,
+          PREVIOUS_LOCATION: "",
+          store: mockStore,
+        });
+        
+        // Spy sur createUser pour vérifier qu'elle est appelée
+        const createUserSpy = jest.spyOn(login, 'createUser').mockResolvedValue({});
+        
+        const form = screen.getByTestId("form-admin");
+        const emailInput = screen.getByTestId("admin-email-input");
+        const passwordInput = screen.getByTestId("admin-password-input");
+        
+        fireEvent.change(emailInput, { target: { value: "admin@test.com" } });
+        fireEvent.change(passwordInput, { target: { value: "password123" } });
+        
+        await fireEvent.submit(form);
+        
+        // Attendre que les promesses se résolvent
+        await new Promise(resolve => setTimeout(resolve, 0));
+        
+        expect(createUserSpy).toHaveBeenCalled();
+        expect(onNavigate).toHaveBeenCalledWith(ROUTES_PATH['Dashboard']);
+        
+        createUserSpy.mockRestore();
+      });
+    });
+
+    describe("When login is successful", () => {
+      test("Then handleSubmitEmployee should set background color to white", async () => {
+        document.body.innerHTML = LoginUI();
+        
+        const mockStore = {
+          login: jest.fn().mockResolvedValue({ jwt: "fake-jwt-token" })
+        };
+        
+        const mockLocalStorage = {
+          setItem: jest.fn(),
+          getItem: jest.fn()
+        };
+        
+        Object.defineProperty(window, 'localStorage', {
+          value: mockLocalStorage,
+          writable: true,
+        });
+        
+        const onNavigate = jest.fn();
+        
+        const login = new Login({
+          document,
+          localStorage: window.localStorage,
+          onNavigate,
+          PREVIOUS_LOCATION: "",
+          store: mockStore,
+        });
+        
+        const form = screen.getByTestId("form-employee");
+        const emailInput = screen.getByTestId("employee-email-input");
+        const passwordInput = screen.getByTestId("employee-password-input");
+        
+        fireEvent.change(emailInput, { target: { value: "test@test.com" } });
+        fireEvent.change(passwordInput, { target: { value: "password123" } });
+        
+        await fireEvent.submit(form);
+        
+        // Attendre que les promesses se résolvent
+        await new Promise(resolve => setTimeout(resolve, 0));
+        
+        // Vérifier la couleur (peut être en format rgb ou hex)
+        expect(document.body.style.backgroundColor).toMatch(/(#fff|rgb\(255,\s*255,\s*255\))/);
+      });
+      
+      test("Then handleSubmitAdmin should set background color to white", async () => {
+        document.body.innerHTML = LoginUI();
+        
+        const mockStore = {
+          login: jest.fn().mockResolvedValue({ jwt: "fake-jwt-token" })
+        };
+        
+        const mockLocalStorage = {
+          setItem: jest.fn(),
+          getItem: jest.fn()
+        };
+        
+        Object.defineProperty(window, 'localStorage', {
+          value: mockLocalStorage,
+          writable: true,
+        });
+        
+        const onNavigate = jest.fn();
+        
+        const login = new Login({
+          document,
+          localStorage: window.localStorage,
+          onNavigate,
+          PREVIOUS_LOCATION: "",
+          store: mockStore,
+        });
+        
+        const form = screen.getByTestId("form-admin");
+        const emailInput = screen.getByTestId("admin-email-input");
+        const passwordInput = screen.getByTestId("admin-password-input");
+        
+        fireEvent.change(emailInput, { target: { value: "admin@test.com" } });
+        fireEvent.change(passwordInput, { target: { value: "password123" } });
+        
+        await fireEvent.submit(form);
+        
+        // Attendre que les promesses se résolvent
+        await new Promise(resolve => setTimeout(resolve, 0));
+        
+        // Vérifier la couleur (peut être en format rgb ou hex)
+        expect(document.body.style.backgroundColor).toMatch(/(#fff|rgb\(255,\s*255,\s*255\))/);
+      });
     });
   });
 });
