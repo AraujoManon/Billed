@@ -72,12 +72,6 @@ export default class {
     this.document = document
     this.onNavigate = onNavigate
     this.store = store
-    // Initialiser les compteurs pour chaque liste
-    this.counters = {
-      1: 0,
-      2: 0,
-      3: 0
-    }
     $('#arrow-icon1').click((e) => this.handleShowTickets(e, bills, 1))
     $('#arrow-icon2').click((e) => this.handleShowTickets(e, bills, 2))
     $('#arrow-icon3').click((e) => this.handleShowTickets(e, bills, 3))
@@ -137,24 +131,22 @@ export default class {
   }
 
   handleShowTickets(e, bills, index) {
-    // Utiliser un compteur spécifique pour chaque liste
-    const counter = this.counters[index]
-    
-    if (counter % 2 === 0) {
-      $(`#arrow-icon${index}`).css({ transform: 'rotate(0deg)'})
-      $(`#status-bills-container${index}`)
-        .html(cards(filteredBills(bills, getStatus(index))))
-      this.counters[index]++
+    if (this.counter === undefined || this.index !== index) this.counter = 0
+    if (this.index === undefined || this.index !== index) this.index = index
+    if (this.counter % 2 === 0) {
+      $(`#arrow-icon${this.index}`).css({ transform: 'rotate(0deg)'})
+      $(`#status-bills-container${this.index}`)
+        .html(cards(filteredBills(bills, getStatus(this.index))))
+      this.counter ++
     } else {
-      $(`#arrow-icon${index}`).css({ transform: 'rotate(90deg)'})
-      $(`#status-bills-container${index}`)
+      $(`#arrow-icon${this.index}`).css({ transform: 'rotate(90deg)'})
+      $(`#status-bills-container${this.index}`)
         .html("")
-      this.counters[index]++
+      this.counter ++
     }
 
-    // Délier les événements existants avant d'en ajouter de nouveaux
     bills.forEach(bill => {
-      $(`#open-bill${bill.id}`).off('click').on('click', (e) => this.handleEditTicket(e, bill, bills))
+      $(`#open-bill${bill.id}`).click((e) => this.handleEditTicket(e, bill, bills))
     })
 
     return bills
