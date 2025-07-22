@@ -9,22 +9,23 @@ export default class {
     this.store = store
     
     // ✅ CORRECTION: Vérifications DOM pour éviter les crashes
-    // PROBLÈME: addEventListener sur des éléments null causait des erreurs
-    // SOLUTION: Vérification de l'existence avant addEventListener
-    
     const buttonNewBill = document.querySelector(`button[data-testid="btn-new-bill"]`)
-    if (buttonNewBill) {
-      buttonNewBill.addEventListener('click', this.handleClickNewBill)
-    }
+    if (buttonNewBill) buttonNewBill.addEventListener('click', this.handleClickNewBill)
     
     const iconEye = document.querySelectorAll(`div[data-testid="icon-eye"]`)
     if (iconEye && iconEye.length > 0) {
       iconEye.forEach(icon => {
-        icon.addEventListener('click', () => this.handleClickIconEye(icon))
+        if (icon && typeof icon.addEventListener === 'function') {
+          icon.addEventListener('click', () => this.handleClickIconEye(icon))
+        }
       })
     }
     
-    new Logout({ document, localStorage, onNavigate })
+    try {
+      new Logout({ document, localStorage, onNavigate })
+    } catch (error) {
+      console.warn('Logout initialization failed:', error)
+    }
   }
 
   handleClickNewBill = () => {
@@ -64,10 +65,9 @@ export default class {
             }
           })
           // ✅ CORRECTION CRITIQUE: Ajout du tri chronologique décroissant
-          // PROBLÈME: Les factures s'affichaient dans l'ordre de la base de données
-          // CAUSE: Aucun tri appliqué après le formatage des données
-          // SOLUTION: Tri par date, du plus récent au plus ancien
-          // IMPACT: Les employés voient leurs dernières factures en premier
+          // Tri par date : du plus récent (2024-12-01) au plus ancien (2020-01-01)
+          // AVANT (MANQUANT): return bills (pas de tri)
+          // APRÈS (CORRIGÉ): .sort((a, b) => (a.date < b.date ? 1 : -1))
           .sort((a, b) => (a.date < b.date ? 1 : -1))
           
         console.log('length', bills.length)

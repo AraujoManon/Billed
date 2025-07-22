@@ -73,24 +73,28 @@ export default class {
     this.onNavigate = onNavigate
     this.store = store
     
-    // ✅ CORRECTION: Ajout de compteurs individuels pour chaque liste
-    // Cela permet d'ouvrir/fermer plusieurs listes indépendamment
-    this.counters = {} // Objet pour stocker l'état de chaque liste
+    // ✅ CORRECTION CRITIQUE: Compteurs individuels pour chaque liste
+    // PROBLÈME: Un seul compteur global → impossible d'ouvrir plusieurs listes
+    // SOLUTION: Objet avec compteurs séparés pour chaque index (1, 2, 3)
+    // AVANT: this.counter = 0 (global)
+    // APRÈS: this.counters = {} (individuel)
+    this.counters = {} // Permet à chaque liste d'avoir son propre état
     
     $('#arrow-icon1').click((e) => this.handleShowTickets(e, bills, 1))
     $('#arrow-icon2').click((e) => this.handleShowTickets(e, bills, 2))
     $('#arrow-icon3').click((e) => this.handleShowTickets(e, bills, 3))
     new Logout({ localStorage, onNavigate })
   }
-
+  
   handleClickIconEye = () => {
     const billUrl = $('#icon-eye-d').attr("data-bill-url")
-    const imgWidth = Math.floor($('#modaleFileAdmin1').width() * 0.8)
-    $('#modaleFileAdmin1').find(".modal-body").html(`<div style='text-align: center;'><img width=${imgWidth} src=${billUrl} alt="Bill"/></div>`)
-    if (typeof $('#modaleFileAdmin1').modal === 'function') $('#modaleFileAdmin1').modal('show')
+    const imgWidth = Math.floor($('#modaleFileAdmin1').width() * 0.5)
+    $('#modaleFileAdmin1').find(".modal-body").html(`<div style='text-align: center;' class="bill-proof-container"><img width=${imgWidth} src=${billUrl} alt="Bill" /></div>`)
+    $('#modaleFileAdmin1').modal('show')
   }
-
+  
   handleEditTicket(e, bill, bills) {
+    // ✅ CORRECTION: Gestion du compteur global pour l'édition
     if (this.counter === undefined || this.id !== bill.id) this.counter = 0
     if (this.id === undefined || this.id !== bill.id) this.id = bill.id
     if (this.counter % 2 === 0) {
@@ -111,10 +115,10 @@ export default class {
       this.counter ++
     }
     $('#icon-eye-d').click(this.handleClickIconEye)
-    $('#btn-accept-bill').click((e) => this.handleAcceptSubmit(e, bill))
-    $('#btn-refuse-bill').click((e) => this.handleRefuseSubmit(e, bill))
+    $('#btn-accept-bill-d').click((e) => this.handleAcceptSubmit(e, bill))
+    $('#btn-refuse-bill-d').click((e) => this.handleRefuseSubmit(e, bill))
   }
-
+  
   handleAcceptSubmit = (e, bill) => {
     const newBill = {
       ...bill,
@@ -136,28 +140,29 @@ export default class {
   }
 
   handleShowTickets(e, bills, index) {
-    // ✅ CORRECTION: Utilisation de compteurs individuels par liste
-    // Initialisation du compteur spécifique à cette liste
+    // ✅ CORRECTION CRITIQUE: Compteurs individuels par index de liste
+    // PROBLÈME: Même compteur pour toutes les listes → fermeture mutuelle
+    // SOLUTION: Un compteur par index de liste (1, 2, 3)
+    
+    // Initialiser le compteur pour cet index s'il n'existe pas
     if (this.counters[index] === undefined) {
       this.counters[index] = 0
     }
     
-    // Logique d'ouverture/fermeture basée sur le compteur individuel
+    // Logique basée sur le compteur spécifique à cette liste
     if (this.counters[index] % 2 === 0) {
-      // Ouvrir la liste
+      // Ouvrir cette liste spécifiquement
       $(`#arrow-icon${index}`).css({ transform: 'rotate(0deg)'})
       $(`#status-bills-container${index}`)
         .html(cards(filteredBills(bills, getStatus(index))))
-      this.counters[index]++
+      this.counters[index]++ // ✅ Seul ce compteur est modifié
     } else {
-      // Fermer la liste
+      // Fermer cette liste spécifiquement  
       $(`#arrow-icon${index}`).css({ transform: 'rotate(90deg)'})
-      $(`#status-bills-container${index}`)
-        .html("")
-      this.counters[index]++
+      $(`#status-bills-container${index}`).html("")
+      this.counters[index]++ // ✅ Les autres listes ne sont pas affectées
     }
 
-    // Gestion des événements de clic sur les tickets
     bills.forEach(bill => {
       $(`#open-bill${bill.id}`).click((e) => this.handleEditTicket(e, bill, bills))
     })
@@ -171,7 +176,7 @@ export default class {
       .bills()
       .list()
       .then(snapshot => {
-        const bills = snapshot
+        const bills =  snapshot
         .map(doc => ({
           id: doc.id,
           ...doc,
@@ -181,16 +186,15 @@ export default class {
         return bills
       })
       .catch(error => {
-        throw error;
+        throw error
       })
     }
   }
 
   // not need to cover this function by tests
-  /* istanbul ignore next */
   updateBill = (bill) => {
     if (this.store) {
-    return this.store
+      return this.store
       .bills()
       .update({data: JSON.stringify(bill), selector: bill.id})
       .then(bill => bill)

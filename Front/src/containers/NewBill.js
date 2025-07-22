@@ -7,47 +7,46 @@ export default class NewBill {
     this.onNavigate = onNavigate
     this.store = store
     
-    // ✅ CORRECTION CRITIQUE: Vérification de l'existence des éléments DOM
-    // PROBLÈME: formNewBill était null et causait un crash sur addEventListener
-    // CAUSE: Les tests instancient NewBill sans avoir le bon DOM
-    // SOLUTION: Vérification de l'existence avant addEventListener
-    
+    // ✅ CORRECTION: Vérifications DOM pour éviter les crashes
     const formNewBill = this.document.querySelector(`form[data-testid="form-new-bill"]`)
-    if (formNewBill) {
-      formNewBill.addEventListener("submit", this.handleSubmit)
-    }
+    if (formNewBill) formNewBill.addEventListener("submit", this.handleSubmit)
     
     const file = this.document.querySelector(`input[data-testid="file"]`)
-    if (file) {
-      file.addEventListener("change", this.handleChangeFile)
-    }
+    if (file) file.addEventListener("change", this.handleChangeFile)
     
     this.fileUrl = null
     this.fileName = null
     this.billId = null
-    new Logout({ document, localStorage, onNavigate })
+    
+    try {
+      new Logout({ document, localStorage, onNavigate })
+    } catch (error) {
+      console.warn('Logout initialization failed:', error)
+    }
   }
-
+  
   handleChangeFile = e => {
     e.preventDefault()
     const file = this.document.querySelector(`input[data-testid="file"]`).files[0]
     const filePath = e.target.value.split(/\\/g)
     const fileName = filePath[filePath.length-1]
     
-    // ✅ CORRECTION: Validation des extensions de fichiers
+    // ✅ CORRECTION CRITIQUE: Validation des extensions de fichiers
+    // PROBLÈME: Aucune validation → fichiers PDF/TXT acceptés → modales vides
+    // SOLUTION: Validation stricte JPG/JPEG/PNG uniquement
     const validExtensions = ['jpg', 'jpeg', 'png']
     const fileExtension = fileName.split('.').pop().toLowerCase()
     
     if (!validExtensions.includes(fileExtension)) {
       // Affichage d'un message d'erreur et reset du champ
       alert('Seuls les fichiers JPG, JPEG et PNG sont acceptés.')
-      e.target.value = ''
+      e.target.value = '' // Reset du champ pour forcer nouvelle sélection
       this.fileUrl = null
       this.fileName = null
-      return // Arrêt du traitement si le fichier n'est pas valide
+      return // Arrêt immédiat du traitement
     }
 
-    // Traitement normal si le fichier est valide
+    // ✅ Traitement normal seulement si le fichier est valide
     const formData = new FormData()
     const email = JSON.parse(localStorage.getItem("user")).email
     formData.append('file', file)
@@ -68,7 +67,7 @@ export default class NewBill {
         this.fileName = fileName
       }).catch(error => console.error(error))
   }
-
+  
   handleSubmit = e => {
     e.preventDefault()
     console.log('e.target.querySelector(`input[data-testid="datepicker"]`).value', e.target.querySelector(`input[data-testid="datepicker"]`).value)

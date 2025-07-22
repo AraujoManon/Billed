@@ -14,7 +14,7 @@ export default class Login {
     const formAdmin = this.document.querySelector(`form[data-testid="form-admin"]`)
     formAdmin.addEventListener("submit", this.handleSubmitAdmin)
   }
-
+  
   handleSubmitEmployee = e => {
     e.preventDefault()
     const user = {
@@ -24,7 +24,8 @@ export default class Login {
       status: "connected"
     }
     this.localStorage.setItem("user", JSON.stringify(user))
-    this.login(user)
+    // ✅ CORRECTION: Retourner la promesse pour que await fonctionne dans les tests
+    return this.login(user)
       .catch(
         (err) => this.createUser(user)
       )
@@ -40,13 +41,13 @@ export default class Login {
     e.preventDefault()
     const user = {
       type: "Admin",
-      // ✅ CORRECTION: Utilisation des bons sélecteurs pour admin
       email: e.target.querySelector(`input[data-testid="admin-email-input"]`).value,
       password: e.target.querySelector(`input[data-testid="admin-password-input"]`).value,
       status: "connected"
     }
     this.localStorage.setItem("user", JSON.stringify(user))
-    this.login(user)
+    // ✅ CORRECTION: Retourner la promesse pour que await fonctionne dans les tests
+    return this.login(user)
       .catch(
         (err) => this.createUser(user)
       )
@@ -54,7 +55,7 @@ export default class Login {
         this.onNavigate(ROUTES_PATH['Dashboard'])
         this.PREVIOUS_LOCATION = ROUTES_PATH['Dashboard']
         PREVIOUS_LOCATION = this.PREVIOUS_LOCATION
-        document.body.style.backgroundColor="#fff"
+        this.document.body.style.backgroundColor="#fff"
       })
   }
 
