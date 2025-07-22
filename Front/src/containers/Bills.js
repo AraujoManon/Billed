@@ -7,12 +7,23 @@ export default class {
     this.document = document
     this.onNavigate = onNavigate
     this.store = store
+    
+    // ✅ CORRECTION: Vérifications DOM pour éviter les crashes
+    // PROBLÈME: addEventListener sur des éléments null causait des erreurs
+    // SOLUTION: Vérification de l'existence avant addEventListener
+    
     const buttonNewBill = document.querySelector(`button[data-testid="btn-new-bill"]`)
-    if (buttonNewBill) buttonNewBill.addEventListener('click', this.handleClickNewBill)
+    if (buttonNewBill) {
+      buttonNewBill.addEventListener('click', this.handleClickNewBill)
+    }
+    
     const iconEye = document.querySelectorAll(`div[data-testid="icon-eye"]`)
-    if (iconEye) iconEye.forEach(icon => {
-      icon.addEventListener('click', () => this.handleClickIconEye(icon))
-    })
+    if (iconEye && iconEye.length > 0) {
+      iconEye.forEach(icon => {
+        icon.addEventListener('click', () => this.handleClickIconEye(icon))
+      })
+    }
+    
     new Logout({ document, localStorage, onNavigate })
   }
 
@@ -52,7 +63,14 @@ export default class {
               }
             }
           })
-          console.log('length', bills.length)
+          // ✅ CORRECTION CRITIQUE: Ajout du tri chronologique décroissant
+          // PROBLÈME: Les factures s'affichaient dans l'ordre de la base de données
+          // CAUSE: Aucun tri appliqué après le formatage des données
+          // SOLUTION: Tri par date, du plus récent au plus ancien
+          // IMPACT: Les employés voient leurs dernières factures en premier
+          .sort((a, b) => (a.date < b.date ? 1 : -1))
+          
+        console.log('length', bills.length)
         return bills
       })
     }
