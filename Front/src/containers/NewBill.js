@@ -1,5 +1,5 @@
-import { ROUTES_PATH } from '../constants/routes.js'
-import Logout from "./Logout.js"
+import { ROUTES_PATH } from '../constants/routes.js' // Constantes des routes de l’app
+import Logout from "./Logout.js" // Gestion de la déconnexion
 
 export default class NewBill {
   constructor({ document, onNavigate, store, localStorage }) {
@@ -7,17 +7,20 @@ export default class NewBill {
     this.onNavigate = onNavigate
     this.store = store
     
-    // ✅ CORRECTION: Vérifications DOM pour éviter les crashes
+    // ✅ Correction : on vérifie que le formulaire existe avant d’ajouter un listener
     const formNewBill = this.document.querySelector(`form[data-testid="form-new-bill"]`)
     if (formNewBill) formNewBill.addEventListener("submit", this.handleSubmit)
     
+    // Même chose pour l’input fichier
     const file = this.document.querySelector(`input[data-testid="file"]`)
     if (file) file.addEventListener("change", this.handleChangeFile)
     
+    // Variables internes pour stocker l’état du fichier
     this.fileUrl = null
     this.fileName = null
     this.billId = null
     
+    // Gestion sécurisée de la déconnexion
     try {
       new Logout({ document, localStorage, onNavigate })
     } catch (error) {
@@ -25,53 +28,61 @@ export default class NewBill {
     }
   }
   
+  // 🔎 Gestion du changement de fichier (upload du justificatif)
   handleChangeFile = e => {
     e.preventDefault()
     const file = this.document.querySelector(`input[data-testid="file"]`).files[0]
-    const filePath = e.target.value.split(/\\/g)
+    const filePath = e.target.value.split(/\\/g) // Découpage du chemin pour récupérer le nom
     const fileName = filePath[filePath.length-1]
     
-    // ✅ CORRECTION CRITIQUE: Validation des extensions de fichiers
-    // PROBLÈME: Aucune validation → fichiers PDF/TXT acceptés → modales vides
-    // SOLUTION: Validation stricte JPG/JPEG/PNG uniquement
+    // ✅ Correction critique : validation des extensions
+    // Avant → acceptait tout (pdf, txt…) → plantage des modales
     const validExtensions = ['jpg', 'jpeg', 'png']
     const fileExtension = fileName.split('.').pop().toLowerCase()
     
     if (!validExtensions.includes(fileExtension)) {
-      // Affichage d'un message d'erreur et reset du champ
+      // Si extension invalide → alerte + reset du champ
       alert('Seuls les fichiers JPG, JPEG et PNG sont acceptés.')
-      e.target.value = '' // Reset du champ pour forcer nouvelle sélection
+      e.target.value = '' // On réinitialise le champ
       this.fileUrl = null
       this.fileName = null
-      return // Arrêt immédiat du traitement
+      return // On arrête tout ici
     }
 
-    // ✅ Traitement normal seulement si le fichier est valide
+    // ⚡ Si fichier valide → on prépare un FormData pour l’envoyer au store
     const formData = new FormData()
     const email = JSON.parse(localStorage.getItem("user")).email
-    formData.append('file', file)
-    formData.append('email', email)
+    formData.append('file', file) // Le fichier
+    formData.append('email', email) // L’email associé
 
+    // Appel au backend (ou mock store) pour sauvegarder le fichier
     this.store
       .bills()
       .create({
         data: formData,
         headers: {
-          noContentType: true
+          noContentType: true // Important car c’est du FormData
         }
       })
       .then(({fileUrl, key}) => {
-        console.log(fileUrl)
-        this.billId = key
-        this.fileUrl = fileUrl
-        this.fileName = fileName
+        console.log(fileUrl) // Debug
+        this.billId = key // ID de la facture
+        this.fileUrl = fileUrl // URL renvoyée par l’API
+        this.fileName = fileName // Nom du fichier stocké
       }).catch(error => console.error(error))
   }
   
+  // 🔎 Gestion de la soumission du formulaire NewBill
   handleSubmit = e => {
     e.preventDefault()
-    console.log('e.target.querySelector(`input[data-testid="datepicker"]`).value', e.target.querySelector(`input[data-testid="datepicker"]`).value)
+    console.log(
+      'e.target.querySelector(`input[data-testid="datepicker"]`).value',
+      e.target.querySelector(`input[data-testid="datepicker"]`).value
+    )
+
     const email = JSON.parse(localStorage.getItem("user")).email
+
+    // Construction de l’objet facture (bill)
     const bill = {
       email,
       type: e.target.querySelector(`select[data-testid="expense-type"]`).value,
@@ -79,17 +90,21 @@ export default class NewBill {
       amount: parseInt(e.target.querySelector(`input[data-testid="amount"]`).value),
       date:  e.target.querySelector(`input[data-testid="datepicker"]`).value,
       vat: e.target.querySelector(`input[data-testid="vat"]`).value,
-      pct: parseInt(e.target.querySelector(`input[data-testid="pct"]`).value) || 20,
+      pct: parseInt(e.target.querySelector(`input[data-testid="pct"]`).value) || 20, // par défaut 20%
       commentary: e.target.querySelector(`textarea[data-testid="commentary"]`).value,
-      fileUrl: this.fileUrl,
+      fileUrl: this.fileUrl, // rempli lors du handleChangeFile
       fileName: this.fileName,
-      status: 'pending'
+      status: 'pending' // toujours en attente à la création
     }
+
+    // Envoi au backend
     this.updateBill(bill)
+
+    // Redirection vers la page Bills
     this.onNavigate(ROUTES_PATH['Bills'])
   }
 
-  // not need to cover this function by tests
+  // 🔎 Mise à jour de la facture (pas besoin de test unitaire)
   updateBill = (bill) => {
     if (this.store) {
       this.store
